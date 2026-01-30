@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulasi Tata Surya Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --space-bg: #0b0d17;
+            --orbit-color: rgba(255, 255, 255, 0.15);
+            --sun-glow: rgba(255, 204, 0, 0.6);
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--space-bg);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        /* Latar Belakang Bintang */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: twinkle var(--duration) infinite alternate;
+        }
+
+        @keyframes twinkle {
+            from { opacity: 0.3; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Area Game Utama */
+        #game-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex; /* Flex akan di-toggle via JS */
+            overflow: hidden;
+            opacity: 0; /* Default hidden transition */
+            transition: opacity 0.5s ease;
+            pointer-events: none; /* Disable click saat hidden */
+        }
+        
+        #game-area.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Zona Orbit */
+        #orbit-zone {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        /* Sidebar Planet */
+        #planet-sidebar {
+            width: 140px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly; 
+            align-items: center;
+            padding: 2vh 10px;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        /* Matahari */
+        .sun {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #fff7e6 0%, #ffd700 20%, #ff8c00 60%, #ff4500 100%);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.8), 0 0 60px rgba(255, 204, 0, 0.4), inset 0 0 20px rgba(255, 69, 0, 0.5);
+            z-index: 2;
+            animation: sun-pulse 4s infinite ease-in-out;
+        }
+
+        .sun::after {
+            content: '';
+            position: absolute;
+            top: -10%; left: -10%;
+            width: 120%; height: 120%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,140,0,0) 70%);
+            filter: blur(5px);
+            z-index: -1;
+            animation: sun-corona 10s linear infinite;
+        }
+
+        @keyframes sun-corona {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.05); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes sun-pulse {
+            0%, 100% { box-shadow: 0 0 30px var(--sun-glow); transform: scale(1); }
+            50% { box-shadow: 0 0 70px var(--sun-glow); transform: scale(1.02); }
+        }
+
+        /* Garis Orbit */
+        .orbit-ring {
+            position: absolute;
+            border: 1px dashed var(--orbit-color);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: border-color 0.3s;
+        }
+        
+        .orbit-ring.highlight {
+            border-color: rgba(100, 255, 100, 0.5);
+            border-width: 2px;
+            box-shadow: 0 0 15px rgba(100, 255, 100, 0.2);
+        }
+
+        /* Planet Styling */
+        .planet {
+            border-radius: 50%;
+            cursor: grab;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: inset -4px -4px 8px rgba(0,0,0,0.7), 2px 2px 5px rgba(0,0,0,0.3);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .planet:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
+        .planet-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 10px;
+            white-space: nowrap;
+            text-shadow: 0 2px 4px black;
+            font-weight: 600;
+            opacity: 1;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .planet.placed .planet-label { opacity: 0; }
+
+        .ringed::after {
+            content: '';
+            position: absolute;
+            width: 180%; height: 180%;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(210, 190, 150, 0.6) 46%, rgba(180, 160, 120, 0.3) 50%, rgba(210, 190, 150, 0.6) 55%, rgba(0,0,0,0) 65%);
+            top: -40%; left: -40%;
+            transform: rotateX(75deg);
+            pointer-events: none;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+        
+        #uranus.ringed::after {
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(175, 238, 238, 0.5) 50%, rgba(0,0,0,0) 65%);
+            transform: rotateY(75deg);
+        }
+
+        @keyframes orbit-animation {
+            from { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
+        }
+
+        .orbiting-wrapper {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
+            z-index: 5;
+            animation: orbit-animation linear infinite;
+        }
+
+        /* Screens (Home, Leaderboard) */
+        .screen-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .screen-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* UI Overlays */
+        #feedback-modal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #4ade80;
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            width: 80%;
+            max-width: 400px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            color: #0f172a;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            pointer-events: none;
+            display: none;
+            z-index: 50;
+            max-width: 220px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid #e2e8f0;
+        }
+
+        .slot-correct { animation: correct-pulse 0.5s ease-out; }
+        @keyframes correct-pulse {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.3); filter: brightness(1.5); box-shadow: 0 0 20px #4ade80; }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        #ui-controls {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            align-items: flex-start;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #ui-controls.active { opacity: 1; pointer-events: none; }
+        #ui-controls > * { pointer-events: auto; }
+
+        #progress-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        #progress-bar-bg {
+            width: 200px;
+            height: 12px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+        }
+        
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+        }
+
+        /* Leaderboard Table Styles */
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: 10px;
+        }
+        .leaderboard-table th {
+            text-align: left;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .leaderboard-table td {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+        .leaderboard-table tr td:first-child { border-radius: 8px 0 0 8px; font-weight: bold; color: #ffd700; text-align: center;}
+        .leaderboard-table tr td:last-child { border-radius: 0 8px 8px 0; text-align: right; font-family: monospace; }
+        .leaderboard-table tr:nth-child(1) td { background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.3); }
+
+        /* --- RESPONSIVE DESIGN --- */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #game-area { flex-direction: column; }
+            #orbit-zone { order: 1; height: 75%; width: 100%; }
+            #planet-sidebar {
+                order: 2; width: 100%; height: 25%;
+                border-left: none; border-top: 1px solid rgba(255, 255, 255, 0.2);
+                flex-direction: row; 
+                justify-content: space-evenly; 
+                padding: 0 5px; 
+                overflow-x: auto; 
+                overflow-y: hidden; 
+                gap: 0; 
+            }
+            #planet-sidebar .planet { transform: scale(0.85); margin: 0 -2px; }
+            .sun { width: 60px; height: 60px; }
+            .progress-label-text { display: none; }
+            #progress-bar-bg { width: 120px; }
+            #reset-btn, #sound-btn, #fullscreen-btn, #home-btn { padding: 10px 12px; font-size: 14px; }
+            #player-badge { top: auto; bottom: 85px; right: 10px; font-size: 12px; padding: 4px 10px; }
+        }
+
+        @media (max-width: 900px) and (orientation: landscape) {
+            #planet-sidebar { width: 100px; }
+            .sun { width: 60px; height: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stars-container"></div>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen-overlay active">
+        <div class="bg-gray-900/80 border border-blue-500/50 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full mx-4 relative overflow-hidden ring-1 ring-white/10">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+            
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse">
+                    <span class="text-4xl">🪐</span>
+                </div>
+                <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Misi Tata Surya</h1>
+                <p class="text-gray-400 text-sm">Susun planet pada orbitnya secepat mungkin!</p>
+            </div>
+            
+            <input type="text" id="player-name-input" placeholder="Nama Kapten..." class="w-full bg-gray-800/50 border border-gray-700 text-white px-4 py-3 rounded-xl mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500 text-center text-lg shadow-inner" autocomplete="off" maxlength="12">
+            
+            <div class="space-y-3">
+                <button onclick="startGameSession()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <span>Mulai Misi</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+                    </svg>
+                </button>
+                <button onclick="showLeaderboard()" class="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold py-3 px-6 rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12zm-8-3.414l3.293 3.293a1 1 0 0 0 1.414-1.414L9.414 9H16V7H9.414l3.293-3.293a1 1 0 0 0-1.414-1.414L8 5.586 4.707 2.293a1 1 0 0 0-1.414 1.414L6.586 7H0v2h6.586l-3.293 3.293a1 1 0 0 0 1.414 1.414L8 10.586z" fill-opacity="0"/> <!-- Dummy Path for spacing -->
+                        <path fill-rule="evenodd" d="M10 12.796V3.204L4.519 8 10 12.796zm-.659.753-5.48-4.796a1 1 0 0 1 0-1.506l5.48-4.796A1 1 0 0 1 11 3.204v9.592a1 1 0 0 1-1.659.753z"/>
+                    </svg>
+                    Papan Skor
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD SCREEN -->
+    <div id="leaderboard-screen" class="screen-overlay">
+        <div class="bg-gray-900/90 border border-yellow-500/30 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 relative ring-1 ring-white/10">
+            <h2 class="text-2xl font-bold text-yellow-400 mb-1 text-center">🏆 Papan Skor</h2>
+            <p class="text-gray-400 text-xs text-center mb-6">Kapten Terbaik Tata Surya</p>
+            
+            <!-- Tambahkan scroll vertical (overflow-y-auto) dan batas tinggi (max-h-64) -->
+            <div class="overflow-y-auto max-h-64 mb-6 pr-2">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th width="15%">#</th>
+                            <th>Nama</th>
+                            <th class="text-right">Skor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Injected by JS -->
+                    </tbody>
+                </table>
+                <p id="no-scores-msg" class="text-center text-gray-500 text-sm hidden py-4">Belum ada skor tercatat.</p>
+            </div>
+
+            <button onclick="goToHome()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition">
+                Kembali ke Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- Player Badge -->
+    <div id="player-badge" class="fixed top-4 right-4 z-40 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full hidden flex items-center gap-2 shadow-lg transition-all hover:bg-white/20 select-none">
+        <div class="relative w-2 h-2">
+            <div class="absolute w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></div>
+            <div class="relative w-2 h-2 bg-green-500 rounded-full"></div>
+        </div>
+        <span class="text-xs font-bold text-blue-100 uppercase tracking-wider" id="display-player-name">KAPTEN</span>
+    </div>
+
+    <!-- UI Controls (Game Mode) -->
+    <div id="ui-controls">
+        <div class="flex gap-2">
+            <!-- Home Button -->
+            <button id="home-btn" onclick="goToHome(true)" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-3 rounded-full shadow-lg transition text-sm flex items-center justify-center backdrop-blur-sm border border-white/20" title="Ke Menu Utama">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5Z"/>
+                    <path d="m8 3.293 6 6V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V9.293l6-6Z"/>
+                </svg>
+            </button>
+
+            <!-- Reset Button -->
+            <button id="reset-btn" onclick="resetGame()" class="bg-blue-600/90 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-sm flex items-center gap-2 backdrop-blur-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+                <span class="hidden sm:inline">Ulangi</span>
+            </button>
+            
+            <!-- Sound Button -->
+            <button id="sound-btn" onclick="toggleSound()" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-sm flex items-center justify-center backdrop-blur-sm border border-white/20" title="Suara On/Off">
+                <svg id="icon-sound-on" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/>
+                  <path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/>
+                  <path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/>
+                </svg>
+                <svg id="icon-sound-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zm7.138 2.096a.5.5 0 0 1 0 .708L11.707 8l2.147 2.146a.5.5 0 0 1-.708.708L11 8.707l-2.146 2.147a.5.5 0 0 1-.708-.708L10.293 8 8.146 5.854a.5.5 0 1 1 .708-.708L11 7.293l2.146-2.147a.5.5 0 0 1 .708 0z"/>
+                </svg>
+            </button>
+
+            <!-- Fullscreen Button -->
+            <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-sm flex items-center justify-center backdrop-blur-sm border border-white/20" title="Layar Penuh">
+                <svg id="icon-fullscreen-enter" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zM15.5 10a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 14.5 16h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+                <svg id="icon-fullscreen-exit" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div id="progress-container">
+            <div id="progress-bar-bg">
+                <div id="progress-bar"></div>
+            </div>
+            <div class="text-xs text-gray-300 flex items-center gap-2 mt-1 font-semibold tracking-wide">
+                <span class="progress-label-text">Progress</span>
+                <span id="progress-text" class="font-bold text-green-400">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <div id="feedback-modal">
+        <h2 class="text-3xl font-bold text-green-400 mb-1">Luar Biasa! 🎉</h2>
+        <p id="score-display" class="text-yellow-400 text-xl font-bold mb-4 font-mono">Skor: 0</p>
+        <p class="text-gray-200 mb-6 text-sm">Tata Surya telah tersusun dengan benar.</p>
+        <div class="flex gap-3 justify-center">
+            <button onclick="goToHome()" class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-6 rounded-full font-bold shadow-lg transition">Menu</button>
+            <button onclick="resetGame()" class="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white py-2 px-6 rounded-full font-bold shadow-lg transform transition hover:scale-105 active:scale-95">Main Lagi</button>
+        </div>
+    </div>
+
+    <div id="game-area">
+        <div id="orbit-zone">
+            <div class="sun"></div>
+        </div>
+        <div id="planet-sidebar"></div>
+    </div>
+
+    <!-- Footer Copyright -->
+    <div class="fixed bottom-1 right-3 text-[10px] text-white/30 pointer-events-none z-40 font-sans select-none">
+        &copy; 2026 Noviyalpg. Semua Hak Dilindungi.
+    </div>
+
+    <script>
+        // --- DATA & CONFIG ---
+        const planetData = [
+            { id: 'merkurius', name: 'Merkurius', type: 'mercury', size: 24, orbitIndex: 0, fact: "Planet terkecil dengan permukaan penuh kawah.", orbitTime: 5 },
+            { id: 'venus', name: 'Venus', type: 'venus', size: 32, orbitIndex: 1, fact: "Planet terpanas karena efek rumah kaca ekstrem.", orbitTime: 8 },
+            { id: 'bumi', name: 'Bumi', type: 'earth', size: 34, orbitIndex: 2, fact: "Satu-satunya tempat kehidupan yang diketahui.", orbitTime: 12 },
+            { id: 'mars', name: 'Mars', type: 'mars', size: 28, orbitIndex: 3, fact: "Planet merah dengan gunung tertinggi di Tata Surya.", orbitTime: 15 },
+            { id: 'jupiter', name: 'Jupiter', type: 'jupiter', size: 60, orbitIndex: 4, fact: "Raksasa gas terbesar dengan Bintik Merah Raksasa.", orbitTime: 25 },
+            { id: 'saturnus', name: 'Saturnus', type: 'saturn', size: 52, orbitIndex: 5, fact: "Dikenal dengan cincin es dan batuannya yang indah.", isRinged: true, orbitTime: 35 },
+            { id: 'uranus', name: 'Uranus', type: 'uranus', size: 42, orbitIndex: 6, fact: "Berotasi miring, seolah menggelinding di orbitnya.", isRinged: true, orbitTime: 45 },
+            { id: 'neptunus', name: 'Neptunus', type: 'neptune', size: 40, orbitIndex: 7, fact: "Planet terjauh, dingin, dan memiliki angin kencang.", orbitTime: 55 }
+        ];
+
+        let orbitRadii = [];
+        let placedCount = 0;
+        const totalPlanets = planetData.length;
+        
+        // Game State
+        let gameStartTime = 0;
+        let mistakeCount = 0;
+        let currentPlayer = "Astronot";
+        let isGameActive = false;
+        
+        // DOM Elements
+        const orbitZone = document.getElementById('orbit-zone');
+        const sidebar = document.getElementById('planet-sidebar');
+        const tooltip = document.getElementById('tooltip');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        let draggedElement = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // --- SCREEN MANAGEMENT ---
+        function switchScreen(screenId) {
+            // Hide all overlays
+            document.querySelectorAll('.screen-overlay').forEach(el => el.classList.remove('active'));
+            // Hide Feedback Modal
+            document.getElementById('feedback-modal').style.display = 'none';
+
+            if (screenId === 'game') {
+                document.getElementById('game-area').classList.add('active');
+                document.getElementById('ui-controls').classList.add('active');
+                document.getElementById('player-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('game-area').classList.remove('active');
+                document.getElementById('ui-controls').classList.remove('active');
+                
+                // Show specific overlay
+                const screen = document.getElementById(screenId + '-screen');
+                if (screen) screen.classList.add('active');
+            }
+        }
+
+        function goToHome(confirmCheck = false) {
+            if (confirmCheck && isGameActive && placedCount > 0 && placedCount < totalPlanets) {
+                if (!confirm("Misi sedang berjalan. Yakin ingin kembali ke menu?")) return;
+            }
+            isGameActive = false;
+            switchScreen('home');
+        }
+
+        function startGameSession() {
+            const input = document.getElementById('player-name-input');
+            let name = input.value.trim();
+            if(!name) name = "Astronot"; 
+            currentPlayer = name;
+
+            // Update badge
+            document.getElementById('display-player-name').innerText = "KAPT. " + name.toUpperCase();
+            
+            // Reset logic
+            resetGame(true);
+            
+            // UI Switch
+            switchScreen('game');
+            
+            // Init Systems
+            initAudio();
+            setTimeout(() => playSound('success'), 300);
+            
+            // Start Scoring Timer
+            gameStartTime = Date.now();
+            mistakeCount = 0;
+            isGameActive = true;
+        }
+
+        function showLeaderboard() {
+            renderLeaderboard();
+            switchScreen('leaderboard');
+        }
+
+        // --- LEADERBOARD SYSTEM ---
+        function saveScore(score) {
+            const scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
+            
+            // Cek apakah pemain ini sudah ada sebelumnya (opsional: update skor jika lebih tinggi)
+            // Untuk saat ini kita simpan setiap sesi permainan sebagai entry baru
+            scores.push({
+                name: currentPlayer,
+                score: score,
+                date: Date.now()
+            });
+            
+            // Urutkan dari tertinggi ke terendah
+            scores.sort((a, b) => b.score - a.score);
+            
+            // HAPUS BATASAN slice(0, 5) agar semua skor tersimpan
+            // const topScores = scores.slice(0, 5); 
+            
+            localStorage.setItem('solar_scores', JSON.stringify(scores));
+        }
+
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            const msg = document.getElementById('no-scores-msg');
+            const scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
+            
+            tbody.innerHTML = '';
+            
+            if (scores.length === 0) {
+                msg.classList.remove('hidden');
+            } else {
+                msg.classList.add('hidden');
+                scores.forEach((s, index) => {
+                    const row = document.createElement('tr');
+                    let rankDisplay = index + 1;
+                    if(index === 0) rankDisplay = '🥇';
+                    if(index === 1) rankDisplay = '🥈';
+                    if(index === 2) rankDisplay = '🥉';
+
+                    row.innerHTML = `
+                        <td>${rankDisplay}</td>
+                        <td class="font-semibold text-white">${s.name}</td>
+                        <td class="text-yellow-400 font-bold">${s.score}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // --- GAME FINISH LOGIC ---
+        function onGameComplete() {
+            isGameActive = false;
+            const endTime = Date.now();
+            const timeTakenSec = Math.floor((endTime - gameStartTime) / 1000);
+            
+            // Score Calculation: 1000 base - (time * 2) - (mistakes * 50)
+            let score = 1000 - (timeTakenSec * 2) - (mistakeCount * 50);
+            if (score < 0) score = 0;
+
+            document.getElementById('score-display').innerText = `Skor: ${score} (Waktu: ${timeTakenSec}s)`;
+            
+            saveScore(score);
+            playSound('win');
+            
+            setTimeout(() => {
+                document.getElementById('feedback-modal').style.display = 'block';
+            }, 500);
+        }
+
+        // --- LISTENER KEYS ---
+        document.getElementById('player-name-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') startGameSession();
+        });
+
+
+        // --- TEXTURE GENERATOR ---
+        function getPlanetStyle(type) {
+            // (Sama seperti sebelumnya, disingkat untuk efisiensi)
+            let bg = '';
+            switch(type) {
+                case 'mercury': bg = `radial-gradient(circle at 30% 30%, #e0e0e0 0%, #9e9e9e 60%, #424242 100%), radial-gradient(circle at 20% 60%, rgba(0,0,0,0.1) 0%, transparent 12%)`; break;
+                case 'venus': bg = `radial-gradient(circle at 60% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 50%), linear-gradient(45deg, #e6b800, #ffcc33, #e6b800)`; break;
+                case 'earth': 
+                    const earthSVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231e4e8c'/%3E%3Cpath d='M30,30 Q50,10 70,30 T90,50 T70,80 T30,70 T10,50 T30,30' fill='%23428c38' opacity='0.9'/%3E%3C/svg%3E`;
+                    bg = `url("${earthSVG}")`; break;
+                case 'mars': bg = `linear-gradient(135deg, #cd5c5c, #8b0000)`; break;
+                case 'jupiter': bg = `linear-gradient(180deg, #5c4a3d 0%, #d1bd9f 20%, #a89078 30%, #7d6b58 60%, #5c4a3d 100%)`; break;
+                case 'saturn': bg = `linear-gradient(180deg, #a6957b 0%, #e2d3bc 15%, #cbbba0 35%, #e2d3bc 60%, #a6957b 100%)`; break;
+                case 'uranus': bg = `radial-gradient(circle at 30% 30%, #e0ffff 0%, #00ced1 100%)`; break;
+                case 'neptune': bg = `radial-gradient(circle at 40% 40%, #4169e1, #00008b)`; break;
+                default: bg = 'gray';
+            }
+            return bg;
+        }
+
+        // --- AUDIO ENGINE ---
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function toggleSound() {
+            isMuted = !isMuted;
+            document.getElementById('icon-sound-on').classList.toggle('hidden');
+            document.getElementById('icon-sound-off').classList.toggle('hidden');
+            if (!isMuted) initAudio();
+        }
+
+        function playTone(freq, type, duration, startTime = 0, vol = 0.1) {
+            if (isMuted || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime + startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + startTime);
+            osc.stop(audioCtx.currentTime + startTime + duration);
+        }
+
+        function playSound(type) {
+            if (isMuted || !audioCtx) return;
+            switch (type) {
+                case 'grab': playTone(400, 'sine', 0.1, 0, 0.05); break;
+                case 'success': playTone(523.25, 'sine', 0.3, 0, 0.1); playTone(659.25, 'sine', 0.4, 0.1, 0.1); break;
+                case 'error': playTone(150, 'sawtooth', 0.2, 0, 0.05); playTone(130, 'sawtooth', 0.2, 0.1, 0.05); break;
+                case 'win': playTone(523.25, 'triangle', 0.4, 0, 0.1); playTone(659.25, 'triangle', 0.4, 0.15, 0.1); playTone(1046.50, 'triangle', 0.8, 0.45, 0.1); break;
+            }
+        }
+
+        // --- FULLSCREEN ---
+        function toggleFullscreen() {
+            const doc = document.documentElement;
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            if (!isFull) {
+                if (doc.requestFullscreen) doc.requestFullscreen().catch(e=>console.log(e));
+                else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+                else if (doc.mozRequestFullScreen) doc.mozRequestFullScreen();
+                else if (doc.msRequestFullscreen) doc.msRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+            }
+        }
+        
+        const onFullscreenChange = () => {
+             setTimeout(() => { calculateOrbits(); resizeOrbits(); }, 100);
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+
+        // --- GAME CORE ---
+        function initGame() {
+            createStars();
+            calculateOrbits();
+            createOrbits();
+            spawnPlanets();
+            window.addEventListener('resize', () => { setTimeout(() => { calculateOrbits(); resizeOrbits(); }, 100); });
+        }
+
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            container.innerHTML = '';
+            for(let i=0; i<80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 2 + 1;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.setProperty('--duration', (Math.random()*3+2)+'s');
+                container.appendChild(star);
+            }
+        }
+
+        function calculateOrbits() {
+            const rect = orbitZone.getBoundingClientRect();
+            const minDim = Math.min(rect.width, rect.height);
+            const sunSize = window.innerWidth < 768 ? 60 : 80;
+            const startRadius = (sunSize / 2) + 15;
+            const step = ((minDim / 2) - 20 - startRadius) / totalPlanets;
+            orbitRadii = planetData.map((_, i) => startRadius + (step * (i + 1)));
+        }
+
+        function createOrbits() {
+            document.querySelectorAll('.orbit-ring').forEach(el => el.remove());
+            orbitRadii.forEach((radius, index) => {
+                const ring = document.createElement('div');
+                ring.className = 'orbit-ring';
+                ring.style.width = (radius * 2) + 'px';
+                ring.style.height = (radius * 2) + 'px';
+                ring.dataset.orbitIndex = index;
+                orbitZone.appendChild(ring);
+            });
+        }
+        
+        function resizeOrbits() {
+             const rings = document.querySelectorAll('.orbit-ring');
+             rings.forEach((ring, index) => {
+                 if (orbitRadii[index]) {
+                     ring.style.width = (orbitRadii[index] * 2) + 'px';
+                     ring.style.height = (orbitRadii[index] * 2) + 'px';
+                 }
+             });
+             document.querySelectorAll('.orbiting-wrapper').forEach(wrap => {
+                 const pData = planetData.find(p => p.id === wrap.dataset.planetId);
+                 if (pData) wrap.style.setProperty('--orbit-radius', orbitRadii[pData.orbitIndex] + 'px');
+             });
+        }
+
+        function spawnPlanets() {
+            sidebar.innerHTML = '';
+            const shuffled = [...planetData].sort(() => Math.random() - 0.5);
+            shuffled.forEach(data => {
+                const p = document.createElement('div');
+                p.className = 'planet';
+                p.id = data.id;
+                p.style.width = data.size + 'px';
+                p.style.height = data.size + 'px';
+                p.style.background = getPlanetStyle(data.type);
+                p.dataset.id = data.id;
+                if (data.isRinged) p.classList.add('ringed');
+
+                const label = document.createElement('span');
+                label.className = 'planet-label';
+                label.innerText = data.name;
+                p.appendChild(label);
+
+                p.addEventListener('mousedown', startDrag);
+                p.addEventListener('touchstart', startDrag, {passive: false});
+                p.addEventListener('mouseenter', (e) => showTooltip(e, data.fact));
+                p.addEventListener('mouseleave', hideTooltip);
+
+                sidebar.appendChild(p);
+            });
+        }
+
+        // --- DRAG LOGIC ---
+        function startDrag(e) {
+            if (e.target.closest('.orbiting-wrapper')) return;
+            e.preventDefault(); 
+            initAudio(); // Backup init
+            playSound('grab');
+            
+            const touch = e.touches ? e.touches[0] : e;
+            draggedElement = e.target.closest('.planet');
+            if (!draggedElement) return;
+
+            const rect = draggedElement.getBoundingClientRect();
+            dragOffsetX = touch.clientX - rect.left;
+            dragOffsetY = touch.clientY - rect.top;
+
+            draggedElement.style.position = 'fixed';
+            draggedElement.style.left = rect.left + 'px';
+            draggedElement.style.top = rect.top + 'px';
+            draggedElement.style.zIndex = 1000;
+            draggedElement.style.margin = '0'; 
+            document.body.appendChild(draggedElement);
+
+            if (e.touches) {
+                document.addEventListener('touchmove', onDrag, {passive: false});
+                document.addEventListener('touchend', endDrag);
+            } else {
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', endDrag);
+            }
+        }
+
+        function onDrag(e) {
+            if (!draggedElement) return;
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            draggedElement.style.left = (touch.clientX - dragOffsetX) + 'px';
+            draggedElement.style.top = (touch.clientY - dragOffsetY) + 'px';
+            
+            // Highlight
+            const zoneRect = orbitZone.getBoundingClientRect();
+            const cx = zoneRect.left + zoneRect.width/2;
+            const cy = zoneRect.top + zoneRect.height/2;
+            const dist = Math.sqrt(Math.pow(touch.clientX - cx, 2) + Math.pow(touch.clientY - cy, 2));
+            
+            document.querySelectorAll('.orbit-ring').forEach(r => r.classList.remove('highlight'));
+            orbitRadii.forEach((r, i) => {
+                 if (Math.abs(dist - r) < 35) {
+                     const rings = document.querySelectorAll('.orbit-ring');
+                     if(rings[i]) rings[i].classList.add('highlight');
+                 }
+            });
+        }
+
+        function endDrag(e) {
+            if (!draggedElement) return;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDrag);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+            document.querySelectorAll('.orbit-ring').forEach(r => r.classList.remove('highlight'));
+
+            const rect = draggedElement.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const zoneRect = orbitZone.getBoundingClientRect();
+            const dist = Math.sqrt(Math.pow(centerX - (zoneRect.left + zoneRect.width/2), 2) + Math.pow(centerY - (zoneRect.top + zoneRect.height/2), 2));
+
+            const pData = planetData.find(p => p.id === draggedElement.dataset.id);
+            const targetRadius = orbitRadii[pData.orbitIndex];
+            
+            if (Math.abs(dist - targetRadius) < 35) {
+                snapToOrbit(draggedElement, pData);
+            } else {
+                returnToSidebar(draggedElement);
+                mistakeCount++;
+                playSound('error'); 
+                if (dist < targetRadius) showToast(`Terlalu dekat!`);
+                else showToast(`Terlalu jauh!`);
+            }
+            draggedElement = null;
+        }
+
+        function snapToOrbit(element, data) {
+            element.classList.add('placed', 'slot-correct');
+            playSound('success');
+            element.style.margin = '0';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'orbiting-wrapper';
+            wrapper.style.animationDuration = data.orbitTime + 's';
+            wrapper.style.setProperty('--orbit-radius', orbitRadii[data.orbitIndex] + 'px');
+            wrapper.dataset.planetId = data.id;
+            element.style.position = 'absolute';
+            element.style.left = '-'+ (data.size/2) +'px';
+            element.style.top = '-'+ (data.size/2) +'px';
+            element.style.transform = '';
+            
+            wrapper.appendChild(element);
+            orbitZone.appendChild(wrapper);
+
+            placedCount++;
+            const pct = (placedCount / totalPlanets) * 100;
+            progressBar.style.width = pct + '%';
+            progressText.innerText = Math.round(pct) + '%';
+
+            if (placedCount === totalPlanets) {
+                onGameComplete();
+            }
+        }
+
+        function returnToSidebar(element) {
+            element.style.transition = 'all 0.5s ease';
+            element.style.opacity = '0'; 
+            setTimeout(() => {
+                element.remove();
+                const pData = planetData.find(p => p.id === element.dataset.id);
+                // Re-create in sidebar
+                const p = document.createElement('div');
+                p.className = 'planet';
+                p.id = pData.id;
+                p.style.width = pData.size + 'px';
+                p.style.height = pData.size + 'px';
+                p.style.background = getPlanetStyle(pData.type);
+                p.dataset.id = pData.id;
+                if (pData.isRinged) p.classList.add('ringed');
+                const label = document.createElement('span');
+                label.className = 'planet-label';
+                label.innerText = pData.name;
+                p.appendChild(label);
+                p.addEventListener('mousedown', startDrag);
+                p.addEventListener('touchstart', startDrag, {passive: false});
+                p.addEventListener('mouseenter', (e) => showTooltip(e, pData.fact));
+                p.addEventListener('mouseleave', hideTooltip);
+                sidebar.appendChild(p);
+            }, 300);
+        }
+
+        function showTooltip(e, text) {
+            if (draggedElement) return;
+            tooltip.innerText = text;
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 10) + 'px';
+            if (e.clientX + 220 > window.innerWidth) tooltip.style.left = (e.clientX - 220) + 'px';
+        }
+        function hideTooltip() { tooltip.style.display = 'none'; }
+
+        function showToast(msg) {
+            const old = document.querySelector('.game-toast');
+            if(old) old.remove();
+            const toast = document.createElement('div');
+            toast.className = 'game-toast fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-6 py-2 rounded-full shadow-lg z-50 text-sm animate-bounce text-center backdrop-blur-sm';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        function resetGame(fullReset = false) {
+            document.getElementById('feedback-modal').style.display = 'none';
+            placedCount = 0;
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            document.querySelectorAll('.orbiting-wrapper').forEach(el => el.remove());
+            spawnPlanets();
+            
+            if (fullReset) {
+                // Also reset scoring related vars
+                gameStartTime = Date.now();
+                mistakeCount = 0;
+            }
+        }
+
+        // Initialize Layout
+        initGame();
+    </script>
+</body>
+</html>
