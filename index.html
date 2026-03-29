@@ -17,14 +17,11 @@
             height: 100%;
             margin: 0;
             padding: 0;
-        }
-
-        body {
             background-color: var(--space-bg);
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* Mencegah pull-to-refresh di HP */
             user-select: none;
         }
 
@@ -47,11 +44,11 @@
             position: relative;
             width: 100%;
             height: 100%;
-            display: flex; /* Flex akan di-toggle via JS */
+            display: flex;
             overflow: hidden;
-            opacity: 0; /* Default hidden transition */
+            opacity: 0;
             transition: opacity 0.5s ease;
-            pointer-events: none; /* Disable click saat hidden */
+            pointer-events: none;
         }
         
         #game-area.active {
@@ -225,6 +222,53 @@
             pointer-events: auto;
         }
 
+        /* Splash Screen Styles */
+        #splash-screen {
+            z-index: 999;
+            flex-direction: column;
+            background: var(--space-bg);
+        }
+        .splash-logo {
+            width: 120px; height: 120px;
+            position: relative;
+            margin-bottom: 2rem;
+            animation: pulse-glow 2s infinite alternate;
+        }
+        .splash-sun {
+            width: 40px; height: 40px;
+            background: radial-gradient(circle, #ffd700, #ff8c00);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+        }
+        .splash-orbit {
+            width: 100%; height: 100%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            position: absolute;
+            top: 0; left: 0;
+            animation: spin 3s linear infinite;
+        }
+        .splash-planet {
+            width: 16px; height: 16px;
+            background: #4ade80;
+            border-radius: 50%;
+            position: absolute;
+            top: -8px; left: 52px;
+            box-shadow: 0 0 15px #4ade80;
+        }
+        .splash-loading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            animation: splash-load 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse-glow { 0% { transform: scale(0.95); } 100% { transform: scale(1.05); } }
+        @keyframes splash-load { 0% { width: 0%; } 100% { width: 100%; } }
+
         /* UI Overlays */
         #feedback-modal {
             position: absolute;
@@ -312,28 +356,145 @@
             box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
         }
 
-        /* Leaderboard Table Styles */
-        .leaderboard-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 8px;
-            margin-top: 10px;
+        /* --- LOGIN SPACE EFFECTS --- */
+        @keyframes float-space {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
         }
-        .leaderboard-table th {
-            text-align: left;
-            color: #9ca3af;
-            font-size: 0.85rem;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        .space-float-1 { animation: float-space 5s ease-in-out infinite; }
+        .space-float-2 { animation: float-space 7s ease-in-out infinite reverse; }
+        .space-float-3 { animation: float-space 6s ease-in-out infinite 1s; }
+        
+        .login-bg-glow {
+            background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.2), transparent 70%);
         }
-        .leaderboard-table td {
+        
+        .input-error {
+            animation: shake 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Podium & Leaderboard Styles */
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 8px;
+            margin-bottom: 24px;
+            height: 160px;
+            margin-top: 20px;
+        }
+        
+        .podium-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            border-radius: 12px 12px 4px 4px;
+            padding: 10px 4px;
+            width: 32%;
+            text-align: center;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+            position: relative;
+            animation: slide-up 0.5s ease-out backwards;
+        }
+
+        /* 1st Place - Gold (Tengah) */
+        .podium-1 { 
+            background: linear-gradient(to top, #d4af37, #ffd700); 
+            height: 100%; 
+            order: 2; 
+            z-index: 3; 
+            color: #422006; 
+            border: 1px solid #ffea00; 
+            animation-delay: 0.2s;
+        }
+        /* 2nd Place - Silver (Kiri) */
+        .podium-2 { 
+            background: linear-gradient(to top, #9ca3af, #e5e7eb); 
+            height: 75%; 
+            order: 1; 
+            z-index: 2; 
+            color: #1f2937; 
+            border: 1px solid #f3f4f6; 
+            animation-delay: 0.4s;
+        }
+        /* 3rd Place - Bronze (Kanan) */
+        .podium-3 { 
+            background: linear-gradient(to top, #8b4513, #cd7f32); 
+            height: 60%; 
+            order: 3; 
+            z-index: 1; 
+            color: #fffbeb; 
+            border: 1px solid #d97706; 
+            animation-delay: 0.6s;
+        }
+
+        .podium-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute; top: -18px;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        .podium-1 .podium-avatar { font-size: 24px; top: -25px; width: 50px; height: 50px; background: #fff; border-color: #ffd700; }
+
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .leaderboard-row {
+            display: flex;
+            align-items: center;
             background: rgba(255,255,255,0.05);
-            padding: 12px;
-            font-size: 0.95rem;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s, background 0.2s;
         }
-        .leaderboard-table tr td:first-child { border-radius: 8px 0 0 8px; font-weight: bold; color: #ffd700; text-align: center;}
-        .leaderboard-table tr td:last-child { border-radius: 0 8px 8px 0; text-align: right; font-family: monospace; }
-        .leaderboard-table tr:nth-child(1) td { background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.3); }
+        .leaderboard-row:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(4px);
+        }
+        .leaderboard-row .rank { width: 12%; font-weight: bold; color: #9ca3af; font-size: 1.1rem; }
+        .leaderboard-row .info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .leaderboard-row .score { width: 25%; text-align: right; font-family: monospace; color: #4ade80; font-weight: bold; font-size: 1.1rem; }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Global Fullscreen Button */
+        #global-fullscreen-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #global-fullscreen-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
 
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 768px) and (orientation: portrait) {
@@ -353,8 +514,8 @@
             .sun { width: 60px; height: 60px; }
             .progress-label-text { display: none; }
             #progress-bar-bg { width: 120px; }
-            #reset-btn, #sound-btn, #fullscreen-btn, #home-btn { padding: 10px 12px; font-size: 14px; }
-            #player-badge { top: auto; bottom: 85px; right: 10px; font-size: 12px; padding: 4px 10px; }
+            #reset-btn, #sound-btn, #home-btn { padding: 10px 12px; font-size: 14px; }
+            #player-badge { top: auto; bottom: 85px; left: 10px; right: auto; font-size: 12px; padding: 4px 10px; }
         }
 
         @media (max-width: 900px) and (orientation: landscape) {
@@ -367,22 +528,60 @@
 
     <div id="stars-container"></div>
 
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="screen-overlay active">
+        <div class="splash-logo">
+            <div class="splash-orbit"><div class="splash-planet"></div></div>
+            <div class="splash-sun"></div>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 tracking-widest animate-pulse mb-6">
+            MEMUAT ALAM SEMESTA...
+        </h1>
+        <div class="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden shadow-inner">
+            <div class="splash-loading-bar"></div>
+        </div>
+    </div>
+
+    <!-- GLOBAL FULLSCREEN BUTTON -->
+    <button id="global-fullscreen-btn" onclick="toggleFullscreen()" title="Layar Penuh">
+        <svg id="icon-fs-enter" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zM15.5 10a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 14.5 16h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+        </svg>
+        <svg id="icon-fs-exit" class="hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z"/>
+        </svg>
+    </button>
+
     <!-- HOME SCREEN -->
-    <div id="home-screen" class="screen-overlay active">
-        <div class="bg-gray-900/80 border border-blue-500/50 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full mx-4 relative overflow-hidden ring-1 ring-white/10">
+    <div id="home-screen" class="screen-overlay">
+        <div class="bg-gray-900/80 border border-blue-500/50 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full mx-4 relative overflow-hidden ring-1 ring-white/10 login-bg-glow">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse">
-                    <span class="text-4xl">🪐</span>
+            <!-- Floating Elements Dekorasi -->
+            <div class="absolute top-8 left-6 text-3xl space-float-1 opacity-60 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] pointer-events-none">☄️</div>
+            <div class="absolute bottom-20 right-6 text-4xl space-float-2 opacity-50 drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] pointer-events-none">🛸</div>
+            <div class="absolute top-24 right-8 text-2xl space-float-3 opacity-70 drop-shadow-[0_0_12px_rgba(168,85,247,0.8)] pointer-events-none">✨</div>
+
+            <div class="mb-6 mt-4 relative z-10">
+                <div class="w-24 h-24 bg-gradient-to-br from-blue-900 to-purple-900 border-2 border-blue-400/50 rounded-full mx-auto flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(59,130,246,0.6)] relative">
+                    <div class="absolute inset-0 rounded-full border border-purple-500/30 animate-[spin_4s_linear_infinite]"></div>
+                    <div class="absolute inset-[-10px] rounded-full border-t-2 border-l-2 border-blue-400/20 animate-[spin_6s_linear_infinite_reverse]"></div>
+                    <span class="text-5xl space-float-1">🌍</span>
                 </div>
-                <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Misi Tata Surya</h1>
-                <p class="text-gray-400 text-sm">Susun planet pada orbitnya secepat mungkin!</p>
+                <h1 class="text-4xl font-bold text-white mb-2 tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">Misi Tata Surya</h1>
+                <p class="text-blue-200/80 text-sm font-medium">Susun planet pada orbitnya secepat mungkin!</p>
+                <p class="text-blue-300/60 text-xs italic mt-1.5 font-semibold">Karya : Noviyalpg</p>
             </div>
             
-            <input type="text" id="player-name-input" placeholder="Nama Kapten..." class="w-full bg-gray-800/50 border border-gray-700 text-white px-4 py-3 rounded-xl mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-500 text-center text-lg shadow-inner" autocomplete="off" maxlength="12">
+            <!-- Input Nama -->
+            <div class="relative z-10">
+                <input type="text" id="player-name-input" placeholder="Nama Kapten..." class="w-full bg-gray-900/80 border border-gray-600 text-white px-4 py-3.5 rounded-xl mb-3 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-gray-500 text-center text-lg shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]" autocomplete="off" maxlength="15">
+                
+                <!-- Input Asal Sekolah -->
+                <input type="text" id="player-school-input" placeholder="Asal Sekolah..." class="w-full bg-gray-900/80 border border-gray-600 text-white px-4 py-3.5 rounded-xl mb-6 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-gray-500 text-center text-md shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]" autocomplete="off" maxlength="30">
+            </div>
             
-            <div class="space-y-3">
+            <div class="space-y-3 relative z-10">
                 <button onclick="startGameSession()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
                     <span>Mulai Misi</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -391,7 +590,7 @@
                 </button>
                 <button onclick="showLeaderboard()" class="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold py-3 px-6 rounded-xl shadow transition flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M16 14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12zm-8-3.414l3.293 3.293a1 1 0 0 0 1.414-1.414L9.414 9H16V7H9.414l3.293-3.293a1 1 0 0 0-1.414-1.414L8 5.586 4.707 2.293a1 1 0 0 0-1.414 1.414L6.586 7H0v2h6.586l-3.293 3.293a1 1 0 0 0 1.414 1.414L8 10.586z" fill-opacity="0"/> <!-- Dummy Path for spacing -->
+                        <path d="M16 14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12zm-8-3.414l3.293 3.293a1 1 0 0 0 1.414-1.414L9.414 9H16V7H9.414l3.293-3.293a1 1 0 0 0-1.414-1.414L8 5.586 4.707 2.293a1 1 0 0 0-1.414 1.414L6.586 7H0v2h6.586l-3.293 3.293a1 1 0 0 0 1.414 1.414L8 10.586z" fill-opacity="0"/>
                         <path fill-rule="evenodd" d="M10 12.796V3.204L4.519 8 10 12.796zm-.659.753-5.48-4.796a1 1 0 0 1 0-1.506l5.48-4.796A1 1 0 0 1 11 3.204v9.592a1 1 0 0 1-1.659.753z"/>
                     </svg>
                     Papan Skor
@@ -402,35 +601,33 @@
 
     <!-- LEADERBOARD SCREEN -->
     <div id="leaderboard-screen" class="screen-overlay">
-        <div class="bg-gray-900/90 border border-yellow-500/30 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 relative ring-1 ring-white/10">
-            <h2 class="text-2xl font-bold text-yellow-400 mb-1 text-center">🏆 Papan Skor</h2>
-            <p class="text-gray-400 text-xs text-center mb-6">Kapten Terbaik Tata Surya</p>
+        <div class="bg-gray-900/90 border border-yellow-500/30 p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 relative ring-1 ring-white/10 flex flex-col max-h-[90vh]">
+            <h2 class="text-2xl font-bold text-yellow-400 mb-1 text-center flex-shrink-0">🏆 Papan Skor</h2>
+            <p class="text-gray-400 text-xs text-center mb-2 flex-shrink-0">Kapten Terbaik Tata Surya</p>
             
-            <!-- Tambahkan scroll vertical (overflow-y-auto) dan batas tinggi (max-h-64) -->
-            <div class="overflow-y-auto max-h-64 mb-6 pr-2">
-                <table class="leaderboard-table">
-                    <thead>
-                        <tr>
-                            <th width="15%">#</th>
-                            <th>Nama</th>
-                            <th class="text-right">Skor</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body">
-                        <!-- Injected by JS -->
-                    </tbody>
-                </table>
-                <p id="no-scores-msg" class="text-center text-gray-500 text-sm hidden py-4">Belum ada skor tercatat.</p>
+            <div class="overflow-y-auto flex-1 mb-6 pr-2 custom-scrollbar" id="leaderboard-scroll-area">
+                
+                <!-- Podium Top 3 -->
+                <div id="podium-container" class="podium-container hidden">
+                    <!-- Injected by JS -->
+                </div>
+
+                <!-- List Top 4+ -->
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <!-- Injected by JS -->
+                </div>
+
+                <p id="no-scores-msg" class="text-center text-gray-500 text-sm hidden py-8">Belum ada skor tercatat.</p>
             </div>
 
-            <button onclick="goToHome()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition">
+            <button onclick="goToHome()" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl transition flex-shrink-0">
                 Kembali ke Menu
             </button>
         </div>
     </div>
 
     <!-- Player Badge -->
-    <div id="player-badge" class="fixed top-4 right-4 z-40 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full hidden flex items-center gap-2 shadow-lg transition-all hover:bg-white/20 select-none">
+    <div id="player-badge" class="fixed top-4 left-4 z-40 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full hidden flex items-center gap-2 shadow-lg transition-all hover:bg-white/20 select-none">
         <div class="relative w-2 h-2">
             <div class="absolute w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></div>
             <div class="relative w-2 h-2 bg-green-500 rounded-full"></div>
@@ -467,16 +664,6 @@
                 </svg>
                 <svg id="icon-sound-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zm7.138 2.096a.5.5 0 0 1 0 .708L11.707 8l2.147 2.146a.5.5 0 0 1-.708.708L11 8.707l-2.146 2.147a.5.5 0 0 1-.708-.708L10.293 8 8.146 5.854a.5.5 0 1 1 .708-.708L11 7.293l2.146-2.147a.5.5 0 0 1 .708 0z"/>
-                </svg>
-            </button>
-
-            <!-- Fullscreen Button -->
-            <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-full shadow-lg transition text-sm flex items-center justify-center backdrop-blur-sm border border-white/20" title="Layar Penuh">
-                <svg id="icon-fullscreen-enter" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zM15.5 10a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 14.5 16h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
-                </svg>
-                <svg id="icon-fullscreen-exit" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z"/>
                 </svg>
             </button>
         </div>
@@ -537,6 +724,7 @@
         let gameStartTime = 0;
         let mistakeCount = 0;
         let currentPlayer = "Astronot";
+        let currentSchool = "-";
         let isGameActive = false;
         
         // DOM Elements
@@ -564,6 +752,7 @@
             } else {
                 document.getElementById('game-area').classList.remove('active');
                 document.getElementById('ui-controls').classList.remove('active');
+                document.getElementById('player-badge').classList.add('hidden');
                 
                 // Show specific overlay
                 const screen = document.getElementById(screenId + '-screen');
@@ -580,12 +769,37 @@
         }
 
         function startGameSession() {
-            const input = document.getElementById('player-name-input');
-            let name = input.value.trim();
-            if(!name) name = "Astronot"; 
-            currentPlayer = name;
+            const nameInput = document.getElementById('player-name-input');
+            const schoolInput = document.getElementById('player-school-input');
+            
+            // Ambil Nilai
+            let name = nameInput.value.trim();
+            let school = schoolInput.value.trim();
 
-            // Update badge
+            // Validasi Wajib Isi
+            let hasError = false;
+            if (!name) {
+                nameInput.classList.add('input-error');
+                setTimeout(() => nameInput.classList.remove('input-error'), 500);
+                hasError = true;
+            }
+            if (!school) {
+                schoolInput.classList.add('input-error');
+                setTimeout(() => schoolInput.classList.remove('input-error'), 500);
+                hasError = true;
+            }
+
+            if (hasError) {
+                initAudio(); // Pastikan audio bisa jalan untuk error
+                playSound('error');
+                showToast("⚠️ Harap isi Nama dan Asal Sekolah!");
+                return;
+            }
+
+            currentPlayer = name;
+            currentSchool = school;
+
+            // Update badge (Kita bisa tambahkan info sekolah di badge jika mau, tapi ini dibuat ringkas)
             document.getElementById('display-player-name').innerText = "KAPT. " + name.toUpperCase();
             
             // Reset logic
@@ -610,50 +824,117 @@
         }
 
         // --- LEADERBOARD SYSTEM ---
-        function saveScore(score) {
-            const scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
-            
-            // Cek apakah pemain ini sudah ada sebelumnya (opsional: update skor jika lebih tinggi)
-            // Untuk saat ini kita simpan setiap sesi permainan sebagai entry baru
-            scores.push({
+        // GANTI URL INI jika Apps Script Anda sudah diperbarui untuk menerima field "school"
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbz9NxCc_k7t1rVyIOE90cvG15ACr6kX-oRyRBTYGl945RzlRd19wEYlPzA5Qe7d56D6/exec"; 
+
+        async function saveScore(score) {
+            // 1. Simpan di lokal
+            const localScores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
+            localScores.push({
                 name: currentPlayer,
+                school: currentSchool,
                 score: score,
                 date: Date.now()
             });
-            
-            // Urutkan dari tertinggi ke terendah
-            scores.sort((a, b) => b.score - a.score);
-            
-            // HAPUS BATASAN slice(0, 5) agar semua skor tersimpan
-            // const topScores = scores.slice(0, 5); 
-            
-            localStorage.setItem('solar_scores', JSON.stringify(scores));
+            localScores.sort((a, b) => b.score - a.score);
+            localStorage.setItem('solar_scores', JSON.stringify(localScores));
+
+            // 2. Simpan ke Cloud (GAS)
+            if (GAS_URL) {
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        // Pastikan mengirim data school juga
+                        body: JSON.stringify({ name: currentPlayer, school: currentSchool, score: score })
+                    });
+                } catch (error) {
+                    console.warn("Gagal sinkronisasi skor ke cloud. Disimpan lokal.");
+                }
+            }
         }
 
-        function renderLeaderboard() {
-            const tbody = document.getElementById('leaderboard-body');
+        async function renderLeaderboard() {
+            const podiumContainer = document.getElementById('podium-container');
+            const listContainer = document.getElementById('leaderboard-list');
             const msg = document.getElementById('no-scores-msg');
-            const scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
             
-            tbody.innerHTML = '';
+            podiumContainer.innerHTML = '';
+            listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 animate-pulse">Memuat skor dari satelit... 📡</div>';
+            podiumContainer.classList.add('hidden');
+            msg.classList.add('hidden');
+
+            let scores = [];
+
+            if (GAS_URL) {
+                try {
+                    const response = await fetch(GAS_URL, { method: 'GET', mode: 'cors', redirect: 'follow' });
+                    if (!response.ok) throw new Error("HTTP error " + response.status);
+                    scores = await response.json();
+                } catch (error) {
+                    console.warn("Gagal mengambil data dari cloud, beralih memuat lokal.");
+                    scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
+                }
+            } else {
+                scores = JSON.parse(localStorage.getItem('solar_scores') || '[]');
+            }
+            
+            listContainer.innerHTML = '';
             
             if (scores.length === 0) {
                 msg.classList.remove('hidden');
-            } else {
-                msg.classList.add('hidden');
-                scores.forEach((s, index) => {
-                    const row = document.createElement('tr');
-                    let rankDisplay = index + 1;
-                    if(index === 0) rankDisplay = '🥇';
-                    if(index === 1) rankDisplay = '🥈';
-                    if(index === 2) rankDisplay = '🥉';
+                return;
+            }
 
-                    row.innerHTML = `
-                        <td>${rankDisplay}</td>
-                        <td class="font-semibold text-white">${s.name}</td>
-                        <td class="text-yellow-400 font-bold">${s.score}</td>
+            // --- RENDER PODIUM (TOP 3) ---
+            const top3 = scores.slice(0, 3);
+            if (top3.length > 0) {
+                podiumContainer.classList.remove('hidden');
+                
+                const createPodiumHTML = (data, rank) => {
+                    if (!data) return '';
+                    const styles = ['podium-1', 'podium-2', 'podium-3'];
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const schoolDisplay = data.school && data.school !== '-' ? data.school : 'Umum';
+                    
+                    return `
+                        <div class="podium-step ${styles[rank - 1]}" title="${data.name} dari ${schoolDisplay}">
+                            <div class="podium-avatar shadow-lg">${medals[rank - 1]}</div>
+                            <div class="font-bold text-sm md:text-base w-full px-1 pt-4 truncate">${data.name}</div>
+                            <div class="text-[9px] md:text-[10px] opacity-80 w-full px-1 pb-1 truncate font-medium uppercase tracking-wider">${schoolDisplay}</div>
+                            <div class="font-mono font-black text-base md:text-lg mt-auto">${data.score}</div>
+                        </div>
                     `;
-                    tbody.appendChild(row);
+                };
+
+                // Inject ke DOM (Urutan elemen di HTML: 1, 2, 3. Urutan visual diatur oleh CSS 'order: 2, 1, 3')
+                let podiumHTML = '';
+                if(top3[0]) podiumHTML += createPodiumHTML(top3[0], 1);
+                if(top3[1]) podiumHTML += createPodiumHTML(top3[1], 2);
+                if(top3[2]) podiumHTML += createPodiumHTML(top3[2], 3);
+                
+                podiumContainer.innerHTML = podiumHTML;
+            }
+
+            // --- RENDER DAFTAR (Peringkat 4 ke atas) ---
+            const restScores = scores.slice(3);
+            if (restScores.length > 0) {
+                restScores.forEach((s, index) => {
+                    const rank = index + 4;
+                    const schoolDisplay = s.school && s.school !== '-' ? s.school : 'Umum';
+                    
+                    const row = document.createElement('div');
+                    row.className = 'leaderboard-row';
+                    row.innerHTML = `
+                        <div class="rank">#${rank}</div>
+                        <div class="info pr-2">
+                            <span class="font-bold text-white leading-tight truncate text-sm md:text-base">${s.name}</span>
+                            <span class="text-[10px] md:text-xs text-blue-300/70 mt-0.5 truncate uppercase tracking-wider">${schoolDisplay}</span>
+                        </div>
+                        <div class="score">${s.score}</div>
+                    `;
+                    listContainer.appendChild(row);
                 });
             }
         }
@@ -664,7 +945,6 @@
             const endTime = Date.now();
             const timeTakenSec = Math.floor((endTime - gameStartTime) / 1000);
             
-            // Score Calculation: 1000 base - (time * 2) - (mistakes * 50)
             let score = 1000 - (timeTakenSec * 2) - (mistakeCount * 50);
             if (score < 0) score = 0;
 
@@ -680,13 +960,15 @@
 
         // --- LISTENER KEYS ---
         document.getElementById('player-name-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('player-school-input').focus();
+        });
+        document.getElementById('player-school-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') startGameSession();
         });
 
 
         // --- TEXTURE GENERATOR ---
         function getPlanetStyle(type) {
-            // (Sama seperti sebelumnya, disingkat untuk efisiensi)
             let bg = '';
             switch(type) {
                 case 'mercury': bg = `radial-gradient(circle at 30% 30%, #e0e0e0 0%, #9e9e9e 60%, #424242 100%), radial-gradient(circle at 20% 60%, rgba(0,0,0,0.1) 0%, transparent 12%)`; break;
@@ -762,7 +1044,17 @@
         }
         
         const onFullscreenChange = () => {
-             setTimeout(() => { calculateOrbits(); resizeOrbits(); }, 100);
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+            // Update icons
+            if(isFull) {
+                document.getElementById('icon-fs-enter').classList.add('hidden');
+                document.getElementById('icon-fs-exit').classList.remove('hidden');
+            } else {
+                document.getElementById('icon-fs-enter').classList.remove('hidden');
+                document.getElementById('icon-fs-exit').classList.add('hidden');
+            }
+            // Recalculate layout
+            setTimeout(() => { calculateOrbits(); resizeOrbits(); }, 100);
         };
         document.addEventListener('fullscreenchange', onFullscreenChange);
         document.addEventListener('webkitfullscreenchange', onFullscreenChange);
@@ -1006,7 +1298,8 @@
             const old = document.querySelector('.game-toast');
             if(old) old.remove();
             const toast = document.createElement('div');
-            toast.className = 'game-toast fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-6 py-2 rounded-full shadow-lg z-50 text-sm animate-bounce text-center backdrop-blur-sm';
+            // Menyesuaikan posisi ke atas (top-10) dan menambah animasi glow
+            toast.className = 'game-toast fixed top-10 left-1/2 transform -translate-x-1/2 bg-red-600/95 text-white px-6 py-3 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)] z-[200] font-bold text-sm animate-bounce text-center backdrop-blur-md border border-red-400';
             toast.innerText = msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2500);
@@ -1026,6 +1319,22 @@
                 mistakeCount = 0;
             }
         }
+
+        // --- SPLASH SCREEN LOGIC ---
+        window.addEventListener('load', () => {
+            // Hilangkan splash screen setelah 2.5 detik
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.classList.remove('active');
+                
+                // Tampilkan home screen setelah animasi fade out selesai
+                setTimeout(() => {
+                    if (!isGameActive) { 
+                        document.getElementById('home-screen').classList.add('active');
+                    }
+                }, 400); 
+            }, 2500);
+        });
 
         // Initialize Layout
         initGame();
